@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="fr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Vote des élèves</title>
+    <link rel="stylesheet" href="/style.css" />
+  </head>
+  <body>
+    <div class="page-shell">
+      <header class="hero">
+        <div class="brand-header">
+          <img src="/logo.png" alt="Logo NODIFS" class="header-logo" />
+          <div>
+            <p class="eyebrow">NODIFS VOTE</p>
+            <h1 id="election-title">Vote des élèves du secondaire</h1>
+          </div>
+        </div>
+        <div class="header-actions">
+          <div class="badge">Élection active</div>
+          <a href="/admin.html" class="admin-link-btn">Espace admin</a>
+        </div>
+      </header>
+
+      <main class="layout single-layout">
+        <section class="card vote-card">
+          <h2>Formulaire de vote</h2>
+          <form id="vote-form">
+            <label for="studentId">Identifiant</label>
+            <input id="studentId" name="studentId" type="text" placeholder="Identifiant" pattern="NV0[0-9]{3}|NV1[0-7][0-9]|NV180" title="Le numéro est incorrect" required />
+
+            <div id="candidate-list" class="candidate-list"></div>
+
+            <button type="submit">Valider mon vote</button>
+          </form>
+          <p id="form-message" class="message" aria-live="polite"></p>
+        </section>
+      </main>
+    </div>
+
+    <script src="/app.js"></script>
+  </body>
+</html>

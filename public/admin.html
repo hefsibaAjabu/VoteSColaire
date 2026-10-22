@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html lang="fr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Admin - NODIFS VOTE</title>
+    <link rel="stylesheet" href="/style.css" />
+  </head>
+  <body>
+    <div class="page-shell admin-shell">
+      <aside class="admin-sidebar hidden">
+        <div class="sidebar-brand">
+          <img src="/logo.png" alt="Logo NODIFS" class="admin-logo" />
+          <div>
+            <span class="sidebar-name">NODIFS</span>
+            <small>Vote admin</small>
+          </div>
+        </div>
+
+        <nav class="sidebar-nav" aria-label="Navigation admin">
+          <button type="button" class="nav-item active" data-view="overview">
+            <span class="nav-icon">◫</span>
+            Overview
+          </button>
+          <button type="button" class="nav-item" data-view="votes">
+            <span class="nav-icon">▣</span>
+            Votes
+          </button>
+          <button type="button" class="nav-item" data-view="candidates">
+            <span class="nav-icon">◎</span>
+            Candidats
+          </button>
+          <button type="button" class="nav-item" data-view="voters">
+            <span class="nav-icon">☰</span>
+            Votants
+          </button>
+          <button type="button" class="nav-item" data-view="settings">
+            <span class="nav-icon">⚙</span>
+            Paramètres
+          </button>
+        </nav>
+
+        <div class="sidebar-footer">
+          <button id="admin-logout-btn" type="button" class="secondary-btn danger-btn">Déconnexion</button>
+        </div>
+      </aside>
+
+      <div class="admin-main-panel">
+        <header class="admin-topbar">
+          <div>
+            <p class="eyebrow">ADMIN</p>
+            <h1>Tableau de bord administration</h1>
+          </div>
+          <div class="header-actions">
+            <span class="status-chip">Live</span>
+            <button type="button" class="link-button" id="back-to-vote-btn">Retour au vote</button>
+          </div>
+        </header>
+
+        <main class="admin-login-panel card">
+          <div id="admin-login-section" class="admin-login-form">
+            <div class="admin-login-header">
+              <p class="eyebrow small-eyebrow">Sécurité</p>
+              <h2>Connexion administrateur</h2>
+            </div>
+            <label for="adminPassword">Mot de passe</label>
+            <input id="adminPassword" type="password" placeholder="Entrez le mot de passe" />
+            <button id="admin-login-btn" type="button" class="primary-btn">Se connecter</button>
+            <p id="admin-message" class="message" aria-live="polite"></p>
+          </div>
+
+          <div id="admin-dashboard-section" class="hidden admin-dashboard-panel">
+            <section class="nav-panel active" data-panel="overview">
+              <div class="admin-toolbar">
+                <div>
+                  <p class="eyebrow small-eyebrow">Vue d’ensemble</p>
+                  <h2>Overview du scrutin</h2>
+                </div>
+                <div class="toolbar-actions">
+                  <button id="reset-election-btn" type="button" class="secondary-btn danger-btn reset-btn">Réinitialiser</button>
+                  <button id="export-csv-btn" type="button" class="secondary-btn export-btn">Exporter CSV</button>
+                </div>
+              </div>
+
+              <div class="stats-grid dashboard-grid">
+                <div class="stat-box stat-primary">
+                  <span>Votants</span>
+                  <strong id="voter-count">0</strong>
+                  <small>Élèves ayant voté</small>
+                </div>
+                <div class="stat-box stat-success">
+                  <span>Votes validés</span>
+                  <strong id="validated-count">0</strong>
+                  <small>Soumissions acceptées</small>
+                </div>
+                <div class="stat-box stat-warning">
+                  <span>Candidat leader</span>
+                  <strong id="leader-name">—</strong>
+                  <small id="leader-votes">0 voix</small>
+                </div>
+                <div class="stat-box stat-accent">
+                  <span>Taux de participation</span>
+                  <strong id="participation-rate">0%</strong>
+                  <small>Sur le total des votes</small>
+                </div>
+              </div>
+
+              <div class="chart-grid">
+                <div class="chart-card">
+                  <div class="panel-header">
+                    <h3>Répartition des voix</h3>
+                  </div>
+                  <div id="vote-chart" class="vote-chart"></div>
+                </div>
+
+                <div class="chart-card">
+                  <div class="panel-header">
+                    <h3>Participation</h3>
+                  </div>
+                  <div class="donut-wrap">
+                    <div id="participation-ring" class="participation-ring">
+                      <span id="ring-value">0%</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div class="dashboard-panels">
+                <div class="half-panel dashboard-panel">
+                  <div class="panel-header">
+                    <h3>Classement des candidats</h3>
+                    <button id="toggle-results" type="button" class="secondary-btn">Afficher les résultats</button>
+                  </div>
+                  <p id="result-summary" class="summary">Aucun vote pour le moment.</p>
+                  <div id="results-panel" class="results-panel hidden">
+                    <div id="results-list" class="results-list"></div>
+                  </div>
+                </div>
+
+                <div class="half-panel dashboard-panel">
+                  <div class="panel-header">
+                    <h3>Liste des votants</h3>
+                  </div>
+                  <div class="table-wrapper">
+                    <table class="voters-table">
+                      <thead>
+                        <tr>
+                          <th>Élève</th>
+                          <th>Candidat</th>
+                        </tr>
+                      </thead>
+                      <tbody id="voters-list"></tbody>
+                    </table>
+                  </div>
+                </div>
+              </div>
+            </section>
+
+            <section class="nav-panel hidden" data-panel="votes">
+              <div class="panel-header large-header">
+                <h2>Activité des votes</h2>
+              </div>
+              <div class="mini-grid">
+                <div class="mini-card accent-card">
+                  <span>Total de votes</span>
+                  <strong id="vote-total-activity">0</strong>
+                </div>
+                <div class="mini-card success-card">
+                  <span>Votes validés</span>
+                  <strong id="vote-valid-activity">0</strong>
+                </div>
+                <div class="mini-card warning-card">
+                  <span>Participation</span>
+                  <strong id="vote-participation-activity">0%</strong>
+                </div>
+              </div>
+              <div class="activity-block">
+                <h3>Suivi du scrutin</h3>
+                <ul class="activity-list">
+                  <li>Élection active et ouverte</li>
+                  <li>Vérification automatique des votes</li>
+                  <li>Statut finalisé en temps réel</li>
+                </ul>
+              </div>
+            </section>
+
+            <section class="nav-panel hidden" data-panel="candidates">
+              <div class="panel-header large-header">
+                <h2>Performance des candidats</h2>
+              </div>
+
+              <div class="settings-grid" style="margin-bottom: 20px;">
+                <div class="setting-card" style="grid-column: 1 / -1;">
+                  <h3>Ajouter un candidat</h3>
+                  <form id="add-candidate-form" enctype="multipart/form-data" class="admin-login-form" style="width:100%; max-width:none; padding:0; background:transparent; border:none; box-shadow:none; border-radius:0;">
+                    <label for="candidate-name">Nom complet</label>
+                    <input id="candidate-name" name="candidateName" type="text" placeholder="Ex. KASONGO Grace" required />
+
+                    <label for="candidate-label">Libellé</label>
+                    <input id="candidate-label" name="candidateLabel" type="text" placeholder="Ex. Candidat N° 4" required />
+
+                    <label for="candidate-image">Photo du candidat</label>
+                    <input id="candidate-image" name="candidateImage" type="file" accept="image/*" />
+
+                    <button type="submit" class="primary-btn">Ajouter le candidat</button>
+                    <p id="candidate-form-message" class="message" aria-live="polite"></p>
+                  </form>
+                </div>
+              </div>
+
+              <div id="candidate-summary-list" class="candidate-summary-list"></div>
+            </section>
+
+            <section class="nav-panel hidden" data-panel="voters">
+              <div class="panel-header large-header">
+                <h2>Gestion des votants</h2>
+              </div>
+              <div class="table-wrapper full-width-table">
+                <table class="voters-table">
+                  <thead>
+                    <tr>
+                      <th>Élève</th>
+                      <th>Candidat</th>
+                    </tr>
+                  </thead>
+                  <tbody id="voters-list-extended"></tbody>
+                </table>
+              </div>
+            </section>
+
+            <section class="nav-panel hidden" data-panel="settings">
+              <div class="panel-header large-header">
+                <h2>Paramètres et sécurité</h2>
+              </div>
+              <div class="settings-grid">
+                <div class="setting-card">
+                  <h3>Protection admin</h3>
+                  <p>Le tableau de bord est verrouillé par mot de passe et accessible uniquement après authentification.</p>
+                </div>
+                <div class="setting-card">
+                  <h3>Export</h3>
+                  <p>Les résultats peuvent être téléchargés sous format CSV pour analyse ou archivage.</p>
+                </div>
+                <div class="setting-card">
+                  <h3>État du système</h3>
+                  <p>Le système est opérationnel et les votes sont enregistrés en temps réel.</p>
+                </div>
+              </div>
+            </section>
+          </div>
+        </main>
+      </div>
+    </div>
+
+    <script src="/admin.js"></script>
+  </body>
+</html>

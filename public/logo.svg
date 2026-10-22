@@ -1,0 +1,63 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 800" role="img" aria-labelledby="title desc">
+  <title id="title">NODIFS Logo</title>
+  <desc id="desc">Logo de NOVA DHECH INTERNATIONAL FRENCH SCHOOL</desc>
+  <defs>
+    <linearGradient id="shieldBlue" x1="0" x2="1">
+      <stop offset="0%" stop-color="#dfefff"/>
+      <stop offset="100%" stop-color="#8ecaf6"/>
+    </linearGradient>
+    <linearGradient id="shieldRed" x1="0" x2="1">
+      <stop offset="0%" stop-color="#ef4c4c"/>
+      <stop offset="100%" stop-color="#d73636"/>
+    </linearGradient>
+  </defs>
+
+  <g>
+    <path d="M400 100 L620 180 L620 430 C620 560 520 680 400 740 C280 680 180 560 180 430 L180 180 Z" fill="#123d8e" stroke="#0c2d65" stroke-width="18"/>
+    <path d="M400 120 L585 185 L585 420 C585 533 500 628 400 690 C300 628 215 533 215 420 L215 185 Z" fill="url(#shieldBlue)" stroke="#113d7d" stroke-width="12"/>
+    <path d="M400 120 L585 185 L585 420 C585 533 500 628 400 690 L400 120 Z" fill="url(#shieldRed)" opacity="0.92"/>
+
+    <g fill="none" stroke="#0d2d66" stroke-width="5" stroke-linecap="round">
+      <path d="M260 255 C320 210 360 196 400 198 C440 196 480 210 540 255"/>
+      <path d="M250 365 C310 400 350 420 400 425 C450 420 490 400 550 365"/>
+      <path d="M186 340 C232 388 255 420 276 454"/>
+      <path d="M614 340 C568 388 545 420 524 454"/>
+    </g>
+
+    <g>
+      <circle cx="400" cy="332" r="118" fill="#eaf5ff" stroke="#0e2b63" stroke-width="8"/>
+      <g stroke="#0e2b63" stroke-width="4" fill="none">
+        <path d="M400 222 L400 442"/>
+        <path d="M286 332 L514 332"/>
+        <path d="M318 250 C360 292 440 372 482 412"/>
+        <path d="M482 250 C440 292 360 372 318 412"/>
+      </g>
+      <path d="M310 332 C330 296 364 276 400 276 C435 276 469 296 490 332 C476 371 440 398 400 398 C360 398 324 371 310 332Z" fill="#fff" opacity="0.82"/>
+      <g fill="#0d2d66" font-family="Arial, sans-serif" font-size="18" font-weight="700">
+        <text x="400" y="325" text-anchor="middle">N</text>
+        <text x="400" y="348" text-anchor="middle">O</text>
+        <text x="400" y="371" text-anchor="middle">D</text>
+        <text x="400" y="394" text-anchor="middle">I</text>
+        <text x="400" y="417" text-anchor="middle">F</text>
+        <text x="400" y="440" text-anchor="middle">S</text>
+      </g>
+    </g>
+
+    <g transform="translate(400 118)">
+      <path d="M0 -68 L16 -10 L75 -10 L24 16 L42 74 L0 38 L-42 74 L-24 16 L-75 -10 L-16 -10 Z" fill="#113d7d"/>
+      <path d="M0 -48 L8 -10 L46 -10 L17 8 L27 42 L0 20 L-27 42 L-17 8 L-46 -10 L-8 -10 Z" fill="#f7ec9a"/>
+    </g>
+
+    <g transform="translate(400 455)">
+      <path d="M-200 0 C-150 -40 -110 -50 -70 -40 C-30 -30 0 -20 60 -50 C120 -80 170 -80 200 0 L200 30 L-200 30 Z" fill="#0f3d8f" opacity="0.9"/>
+      <path d="M-160 0 C-120 -26 -90 -32 -62 -26 C-22 -18 12 -6 48 -20 C86 -34 118 -34 160 0 L160 26 L-160 26 Z" fill="#dfefff" opacity="0.75"/>
+    </g>
+
+    <g fill="#123d8e" stroke="#123d8e" stroke-width="2">
+      <path d="M120 520 C70 500 40 470 20 430 C42 445 72 447 105 440 C90 462 80 486 120 520Z"/>
+      <path d="M680 520 C730 500 760 470 780 430 C758 445 728 447 695 440 C710 462 720 486 680 520Z"/>
+      <path d="M110 590 C85 572 60 560 20 565 C52 590 82 605 116 610 C108 596 110 586 110 590Z"/>
+      <path d="M690 590 C715 572 740 560 780 565 C748 590 718 605 684 610 C692 596 690 586 690 590Z"/>
+    </g>
+  </g>
+</svg>
