@@ -41,7 +41,7 @@ const election = {
   candidates: defaultCandidates.map((candidate) => ({ ...candidate }))
 };
 
-const ADMIN_PASSWORD = 'admin123';
+const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || (process.env.NODE_ENV === 'production' ? '' : 'admin123');
 const adminTokens = new Set();
 const votesByStudent = new Map();
 let voteCounts = Object.fromEntries(election.candidates.map((candidate) => [candidate.id, 0]));
@@ -293,6 +293,10 @@ app.get('*', (req, res) => {
 });
 
 function startServer(port = process.env.PORT || 3000) {
+  if (!ADMIN_PASSWORD) {
+    return Promise.reject(new Error('La variable ADMIN_PASSWORD doit être définie en production.'));
+  }
+
   initializeElectionState();
   return new Promise((resolve) => {
     const server = app.listen(port, () => {
@@ -302,7 +306,10 @@ function startServer(port = process.env.PORT || 3000) {
 }
 
 if (require.main === module) {
-  startServer();
+  startServer().catch((error) => {
+    console.error(error.message);
+    process.exitCode = 1;
+  });
 }
 
 module.exports = { app, startServer, election, buildResults, ADMIN_PASSWORD };
