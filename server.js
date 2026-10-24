@@ -1,10 +1,11 @@
-require('dotenv').config();
+require('dotenv').config({ silent: true });
 
 const express = require('express');
 const path = require('path');
 const crypto = require('crypto');
 const multer = require('multer');
 const { MongoClient } = require('mongodb');
+const mongoUri = process.env.MONGODB_URI;
 
 const defaultCandidates = [
   { id: 'c1', name: 'KATEMBO SILUSAWA Jean-Luc', label: 'Candidat N° 1', image: '/images/JeanLuc.jpeg' },
@@ -32,7 +33,12 @@ class MongoElectionStore {
       throw new Error('La variable MONGODB_URI doit être définie pour connecter MongoDB.');
     }
 
-    this.client = new MongoClient(this.uri);
+    this.client = new MongoClient(this.uri, {
+      serverSelectionTimeoutMS: 15000,
+      connectTimeoutMS: 15000,
+      family: 4 // Force l'utilisation d'IPv4 pour contourner les blocages réseau sur le cloud
+    });
+    
     await this.client.connect();
     this.db = this.client.db(this.dbName);
     this.elections = this.db.collection('elections');
