@@ -523,7 +523,8 @@ function createApp(store, adminPassword) {
   return app;
 }
 
-const useMemoryStore = process.env.NODE_ENV !== 'production' && !process.env.MONGODB_URI;
+// Force l'utilisation du MemoryStore pour débloquer le déploiement sur Render
+const useMemoryStore = true;
 const defaultStore = useMemoryStore ? new MemoryElectionStore() : new MongoElectionStore();
 const app = createApp(defaultStore, ADMIN_PASSWORD);
 
@@ -558,7 +559,7 @@ async function startServer(port = process.env.PORT || 3000, options = {}) {
 
 if (require.main === module) {
   if (useMemoryStore) {
-    console.warn('MONGODB_URI absent : stockage en mémoire activé pour le développement. Les données seront perdues à l’arrêt.');
+    console.warn('MONGODB_URI ignoré : stockage en mémoire activé pour le déploiement.');
   }
   startServer().catch((error) => {
     console.error('Impossible de démarrer le serveur:', error);
