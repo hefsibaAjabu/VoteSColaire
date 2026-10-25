@@ -232,6 +232,15 @@ function createApp(store, adminPassword) {
     }
   });
 
+  app.post('/api/admin/reset', requireAdmin, async (req, res, next) => {
+    try {
+      await store.reset();
+      return res.json({ message: 'Scrutin réinitialisé avec succès.' });
+    } catch (error) {
+      return next(error);
+    }
+  });
+
   app.post('/api/vote', async (req, res, next) => {
     try {
       const { studentId, candidateId } = req.body || {};
