@@ -1,11 +1,18 @@
+const path = require('path');
+// Charge le fichier .env en local s'il existe, sans bloquer sur Render
 require('dotenv').config({ silent: true });
 
 const express = require('express');
-const path = require('path');
 const crypto = require('crypto');
 const multer = require('multer');
 const { MongoClient } = require('mongodb');
+
+// Vérification au démarrage dans les logs Render
 const mongoUri = process.env.MONGODB_URI;
+console.log('--- VÉRIFICATION DÉMARRAGE ---');
+console.log('MONGODB_URI détecté :', mongoUri ? 'OUI (Chaîne présente)' : 'NON (Variable absente)');
+console.log('NODE_ENV :', process.env.NODE_ENV);
+console.log('------------------------------');
 
 const defaultCandidates = [
   { id: 'c1', name: 'KATEMBO SILUSAWA Jean-Luc', label: 'Candidat N° 1', image: '/images/JeanLuc.jpeg' },
@@ -36,7 +43,7 @@ class MongoElectionStore {
     this.client = new MongoClient(this.uri, {
       serverSelectionTimeoutMS: 15000,
       connectTimeoutMS: 15000,
-      family: 4 // Force l'utilisation d'IPv4 pour contourner les blocages réseau sur le cloud
+      family: 4 // Force IPv4 pour contourner les blocages réseau de Render
     });
     
     await this.client.connect();
