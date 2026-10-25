@@ -6,7 +6,7 @@ const { MongoClient, ObjectId } = require('mongodb');
 const path = require('path');
 
 const app = express();
-const PORT = process.env.PORT || 3000;
+const PORT = process.env.PORT || 10000;
 
 // Configuration des middlewares
 app.use(express.json());
@@ -19,8 +19,7 @@ app.set('views', path.join(__dirname, 'views'));
 
 // Classe de gestion de la base de données MongoDB
 class DatabaseManager {
-  constructor(uri, dbName = 'nodifs_vote') {
-    this.uri = uri;
+  constructor(dbName = 'nodifs_vote') {
     this.dbName = dbName;
     this.client = null;
     this.db = null;
@@ -29,23 +28,26 @@ class DatabaseManager {
   }
 
   async connect() {
-    if (!this.uri) {
+    // Lecture dynamique de la variable au moment de l'exécution
+    const uri = process.env.MONGODB_URI;
+
+    if (!uri) {
       throw new Error('La variable MONGODB_URI doit être définie pour connecter MongoDB.');
     }
 
     console.log('Connexion à MongoDB Atlas en cours...');
-    
-    this.client = new MongoClient(this.uri, {
+
+    this.client = new MongoClient(uri, {
       serverSelectionTimeoutMS: 30000,
       connectTimeoutMS: 30000,
       retryWrites: true
     });
-    
+
     await this.client.connect();
     this.db = this.client.db(this.dbName);
     this.elections = this.db.collection('elections');
     this.images = this.db.collection('candidate_images');
-    
+
     console.log('Connecté avec succès à MongoDB Atlas !');
   }
 
@@ -57,9 +59,8 @@ class DatabaseManager {
   }
 }
 
-// Initialisation de la base de données
-const mongoUri = process.env.MONGODB_URI;
-const dbManager = new DatabaseManager(mongoUri);
+// Initialisation de l'instance du gestionnaire de base de données
+const dbManager = new DatabaseManager();
 
 // Routes principales de l'application
 app.get('/', async (req, res) => {
