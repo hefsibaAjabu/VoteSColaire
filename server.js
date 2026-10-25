@@ -25,10 +25,10 @@ class DatabaseManager {
     this.db = null;
     this.elections = null;
     this.images = null;
+    this.connected = false;
   }
 
   async connect() {
-    // Lecture dynamique de la variable au moment de l'exécution
     const uri = process.env.MONGODB_URI;
 
     if (!uri) {
@@ -40,6 +40,7 @@ class DatabaseManager {
     this.client = new MongoClient(uri, {
       serverSelectionTimeoutMS: 30000,
       connectTimeoutMS: 30000,
+      family: 4, // forcer IPv4 (évite certains blocages réseau sur Render)
       retryWrites: true
     });
 
@@ -47,6 +48,7 @@ class DatabaseManager {
     this.db = this.client.db(this.dbName);
     this.elections = this.db.collection('elections');
     this.images = this.db.collection('candidate_images');
+    this.connected = true;
 
     console.log('Connecté avec succès à MongoDB Atlas !');
   }
@@ -54,6 +56,7 @@ class DatabaseManager {
   async close() {
     if (this.client) {
       await this.client.close();
+      this.connected = false;
       console.log('Connexion MongoDB fermée.');
     }
   }
@@ -67,24 +70,47 @@ app.get('/', async (req, res) => {
   try {
     res.render('index', { message: 'Bienvenue sur NODIFS VOTE' });
   } catch (err) {
-    console.error('Erreur lors du chargement de la page d\'accueil:', err);
+    console.error("Erreur lors du chargement de la page d'accueil:", err);
     res.status(500).send('Erreur interne du serveur');
   }
 });
 
+// Route de diagnostic : ouvrir /health pour voir si MongoDB est connecté
+app.get('/health', (req, res) => {
+  res.json({ server: 'ok', mongodb: dbManager.connected ? 'connected' : 'disconnected' });
+});
+
+// Tentatives de connexion MongoDB en arrière-plan (3 essais)
+async function connectWithRetry(attempts = 3, delayMs = 5000) {
+  for (let i = 1; i <= attempts; i++) {
+    try {
+      await dbManager.connect();
+      return;
+    } catch (error) {
+      console.error(`MongoDB indisponible (essai ${i}/${attempts}) :`, error.message);
+      if (i < attempts) {
+        await new Promise((resolve) => setTimeout(resolve, delayMs));
+      }
+    }
+  }
+  console.error('Impossible de se connecter à MongoDB après plusieurs essais.');
+}
+
 // Fonction de démarrage du serveur
 async function startServer() {
-  try {
-    await dbManager.connect();
+  // Le serveur HTTP démarre d'abord, pour que Render détecte le port
+  app.listen(PORT, '0.0.0.0', () => {
+    console.log(`Serveur démarré et en écoute sur le port ${PORT}`);
+  });
 
-    app.listen(PORT, '0.0.0.0', () => {
-      console.log(`Serveur démarré et en écoute sur le port ${PORT}`);
-    });
-  } catch (error) {
-    console.error('Erreur critique lors du démarrage du serveur :', error);
-    process.exit(1);
-  }
+  await connectWithRetry();
 }
+
+// Fermeture propre
+process.on('SIGTERM', async () => {
+  await dbManager.close();
+  process.exit(0);
+});
 
 // Lancement automatique du serveur
 if (require.main === module) {
@@ -94,4 +120,4 @@ if (require.main === module) {
   });
 }
 
-module.exports = { app, DatabaseManager };
+module.exports = { app, DatabaseManager, ObjectId };
