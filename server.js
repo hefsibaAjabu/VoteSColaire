@@ -1,123 +1,287 @@
-// Charger les variables d'environnement du fichier .env en local
-require('dotenv').config();
+const path = require('path');
+require('dotenv').config({ silent: true });
 
 const express = require('express');
-const { MongoClient, ObjectId } = require('mongodb');
-const path = require('path');
+const crypto = require('crypto');
+const multer = require('multer');
 
-const app = express();
-const PORT = process.env.PORT || 10000;
+console.log('--- DÉMARRAGE DU SERVEUR ---');
+console.log('Mode : Stockage en mémoire activé (Bypass MongoDB)');
+console.log('NODE_ENV :', process.env.NODE_ENV);
+console.log('----------------------------');
 
-// Configuration des middlewares
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
-app.use(express.static(path.join(__dirname, 'public')));
+const defaultCandidates = [
+  { id: 'c1', name: 'KATEMBO SILUSAWA Jean-Luc', label: 'Candidat N° 1', image: '/images/JeanLuc.jpeg' },
+  { id: 'c2', name: 'MVUTSENEZA NYINAWABEGA Ilone', label: 'Candidat N° 2', image: '/images/ilone.jpeg' },
+  { id: 'c3', name: 'KALONJI WA KALONJI Daniel', label: 'Candidat N° 3', image: '/images/kalonji.jpeg' }
+];
 
-// Configuration du moteur de vues
-app.set('view engine', 'ejs');
-app.set('views', path.join(__dirname, 'views'));
+const defaultElection = {
+  title: 'Vote des élèves du secondaire',
+  description: 'Élection des représentants de classe et des délégués de l’établissement.'
+};
 
-// Classe de gestion de la base de données MongoDB
-class DatabaseManager {
-  constructor(dbName = 'nodifs_vote') {
-    this.dbName = dbName;
-    this.client = null;
-    this.db = null;
-    this.elections = null;
-    this.images = null;
-    this.connected = false;
+const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'admin123';
+const adminTokens = new Set();
+
+class MemoryElectionStore {
+  constructor() {
+    this.state = null;
+    this.images = new Map();
   }
 
   async connect() {
-    const uri = process.env.MONGODB_URI;
-
-    if (!uri) {
-      throw new Error('La variable MONGODB_URI doit être définie pour connecter MongoDB.');
-    }
-
-    console.log('Connexion à MongoDB Atlas en cours...');
-
-    this.client = new MongoClient(uri, {
-      serverSelectionTimeoutMS: 30000,
-      connectTimeoutMS: 30000,
-      family: 4, // forcer IPv4 (évite certains blocages réseau sur Render)
-      retryWrites: true
-    });
-
-    await this.client.connect();
-    this.db = this.client.db(this.dbName);
-    this.elections = this.db.collection('elections');
-    this.images = this.db.collection('candidate_images');
-    this.connected = true;
-
-    console.log('Connecté avec succès à MongoDB Atlas !');
+    // Connexion instantanée sans réseau
+    return true;
   }
 
-  async close() {
-    if (this.client) {
-      await this.client.close();
-      this.connected = false;
-      console.log('Connexion MongoDB fermée.');
+  async initialize() {
+    if (!this.state) {
+      this.state = {
+        ...defaultElection,
+        candidates: defaultCandidates.map((candidate) => ({ ...candidate })),
+        votes: [],
+        candidateSequence: defaultCandidates.length
+      };
     }
   }
+
+  async ping() {
+    return true;
+  }
+
+  async getState() {
+    return structuredClone(this.state);
+  }
+
+  async addCandidate(input) {
+    this.state.candidateSequence += 1;
+    const number = this.state.candidateSequence;
+    const candidate = {
+      id: `c${number}`,
+      name: input.name,
+      label: input.label || `Candidat N° ${number}`,
+      image: input.image
+    };
+    this.state.candidates.push(candidate);
+    return candidate;
+  }
+
+  async saveImage(filename, contentType, data) {
+    this.images.set(filename, { contentType, data: Buffer.from(data) });
+  }
+
+  async getImage(filename) {
+    return this.images.get(filename) || null;
+  }
+
+  async deleteImage(filename) {
+    this.images.delete(filename);
+  }
+
+  async recordVote(studentId, candidateId) {
+    if (this.state.votes.some((vote) => vote.studentId === studentId)) {
+      return 'duplicate';
+    }
+    if (!this.state.candidates.some((candidate) => candidate.id === candidateId)) {
+      return 'candidate-not-found';
+    }
+    this.state.votes.push({ studentId, candidateId, createdAt: new Date() });
+    return 'recorded';
+  }
+
+  async reset() {
+    this.state = {
+      ...defaultElection,
+      candidates: defaultCandidates.map((candidate) => ({ ...candidate })),
+      votes: [],
+      candidateSequence: defaultCandidates.length
+    };
+  }
+
+  async close() {}
 }
 
-// Initialisation de l'instance du gestionnaire de base de données
-const dbManager = new DatabaseManager();
-
-// Routes principales de l'application
-app.get('/', async (req, res) => {
-  try {
-    res.render('index', { message: 'Bienvenue sur NODIFS VOTE' });
-  } catch (err) {
-    console.error("Erreur lors du chargement de la page d'accueil:", err);
-    res.status(500).send('Erreur interne du serveur');
+function buildResults(state) {
+  const counts = new Map();
+  for (const vote of state.votes) {
+    counts.set(vote.candidateId, (counts.get(vote.candidateId) || 0) + 1);
   }
-});
 
-// Route de diagnostic : ouvrir /health pour voir si MongoDB est connecté
-app.get('/health', (req, res) => {
-  res.json({ server: 'ok', mongodb: dbManager.connected ? 'connected' : 'disconnected' });
-});
+  return state.candidates.map((candidate) => ({
+    ...candidate,
+    votes: counts.get(candidate.id) || 0
+  }));
+}
 
-// Tentatives de connexion MongoDB en arrière-plan (3 essais)
-async function connectWithRetry(attempts = 3, delayMs = 5000) {
-  for (let i = 1; i <= attempts; i++) {
+function parseCookies(header = '') {
+  return header.split(';').reduce((cookies, part) => {
+    const entry = part.trim();
+    if (!entry) return cookies;
+
+    const separatorIndex = entry.indexOf('=');
+    const key = separatorIndex >= 0 ? entry.slice(0, separatorIndex) : entry;
+    const value = separatorIndex >= 0 ? entry.slice(separatorIndex + 1) : '';
+    cookies[key] = decodeURIComponent(value);
+    return cookies;
+  }, {});
+}
+
+function isValidStudentId(studentId) {
+  if (typeof studentId !== 'string') return false;
+  const trimmed = studentId.trim();
+  const validPattern = /^NV(0\d{3}|1[0-7]\d|180)$/;
+  return validPattern.test(trimmed);
+}
+
+function createApp(store, adminPassword) {
+  const app = express();
+  const upload = multer({
+    storage: multer.memoryStorage(),
+    limits: { fileSize: 5 * 1024 * 1024 }
+  });
+
+  app.use(express.json());
+  app.use(express.static(path.join(__dirname, 'public')));
+
+  function requireAdmin(req, res, next) {
+    const tokenFromHeader = req.headers['x-admin-token'];
+    const tokenFromQuery = req.query && req.query.token ? String(req.query.token) : '';
+    const cookies = parseCookies(req.headers.cookie || '');
+    const token = String(tokenFromHeader || tokenFromQuery || cookies.admin_session || '');
+
+    if (!token || !adminTokens.has(token)) {
+      return res.status(401).json({ error: 'Accès réservé à l’administrateur.' });
+    }
+
+    return next();
+  }
+
+  app.get('/api/health', async (req, res, next) => {
     try {
-      await dbManager.connect();
-      return;
+      await store.ping();
+      return res.json({ status: 'ok', app: 'nodifs-vote', timestamp: new Date().toISOString() });
     } catch (error) {
-      console.error(`MongoDB indisponible (essai ${i}/${attempts}) :`, error.message);
-      if (i < attempts) {
-        await new Promise((resolve) => setTimeout(resolve, delayMs));
-      }
+      return next(error);
     }
-  }
-  console.error('Impossible de se connecter à MongoDB après plusieurs essais.');
+  });
+
+  app.post('/api/admin/login', (req, res) => {
+    const { password } = req.body || {};
+
+    if (String(password || '').trim() !== adminPassword) {
+      return res.status(401).json({ error: 'Mot de passe administrateur incorrect.' });
+    }
+
+    const token = crypto.randomBytes(24).toString('hex');
+    adminTokens.add(token);
+    const secure = process.env.NODE_ENV === 'production' ? '; Secure' : '';
+    res.setHeader('Set-Cookie', `admin_session=${token}; Path=/; HttpOnly; SameSite=Lax${secure}`);
+    return res.json({ token, message: 'Connexion administrateur réussie.' });
+  });
+
+  app.get('/api/admin/session', requireAdmin, (req, res) => {
+    res.json({ authenticated: true, message: 'Session admin active.' });
+  });
+
+  app.get('/api/election', async (req, res, next) => {
+    try {
+      const state = await store.getState();
+      return res.json({
+        title: state.title,
+        description: state.description,
+        candidates: state.candidates,
+        totalVotes: state.votes.length,
+        results: []
+      });
+    } catch (error) {
+      return next(error);
+    }
+  });
+
+  app.get('/api/results', requireAdmin, async (req, res, next) => {
+    try {
+      const state = await store.getState();
+      return res.json({
+        title: state.title,
+        totalVotes: state.votes.length,
+        results: buildResults(state)
+      });
+    } catch (error) {
+      return next(error);
+    }
+  });
+
+  app.get('/api/admin/voters', requireAdmin, async (req, res, next) => {
+    try {
+      const state = await store.getState();
+      const candidatesById = new Map(state.candidates.map((candidate) => [candidate.id, candidate]));
+      const votes = state.votes
+        .map((vote) => ({
+          studentId: vote.studentId,
+          candidateId: vote.candidateId,
+          candidateName: candidatesById.has(vote.candidateId)
+            ? candidatesById.get(vote.candidateId).name
+            : 'Candidat inconnu'
+        }))
+        .sort((a, b) => a.studentId.localeCompare(b.studentId));
+
+      return res.json({ totalVotes: votes.length, votes });
+    } catch (error) {
+      return next(error);
+    }
+  });
+
+  app.post('/api/vote', async (req, res, next) => {
+    try {
+      const { studentId, candidateId } = req.body || {};
+      const safeStudentId = String(studentId || '').trim();
+      const safeCandidateId = String(candidateId || '').trim();
+
+      if (!safeStudentId || !isValidStudentId(safeStudentId)) {
+        return res.status(400).json({ error: 'Identifiant invalide (ex: NV0001 à NV0180).' });
+      }
+
+      if (!safeCandidateId) {
+        return res.status(400).json({ error: 'Veuillez sélectionner un candidat.' });
+      }
+
+      const result = await store.recordVote(safeStudentId, safeCandidateId);
+      if (result === 'duplicate') {
+        return res.status(409).json({ error: 'Vous avez déjà voté.' });
+      }
+
+      const state = await store.getState();
+      const candidate = state.candidates.find((item) => item.id === safeCandidateId);
+      return res.status(201).json({
+        message: 'Votre vote a été enregistré avec succès.',
+        candidate: candidate ? candidate.name : ''
+      });
+    } catch (error) {
+      return next(error);
+    }
+  });
+
+  app.get('*', (req, res) => {
+    res.sendFile(path.join(__dirname, 'public', 'index.html'));
+  });
+
+  return app;
 }
 
-// Fonction de démarrage du serveur
+const store = new MemoryElectionStore();
+const app = createApp(store, ADMIN_PASSWORD);
+
 async function startServer() {
-  // Le serveur HTTP démarre d'abord, pour que Render détecte le port
-  app.listen(PORT, '0.0.0.0', () => {
-    console.log(`Serveur démarré et en écoute sur le port ${PORT}`);
-  });
+  await store.connect();
+  await store.initialize();
 
-  await connectWithRetry();
+  const port = process.env.PORT || 3000;
+  app.listen(port, () => {
+    console.log(`Serveur démarré avec succès sur le port ${port}`);
+  });
 }
 
-// Fermeture propre
-process.on('SIGTERM', async () => {
-  await dbManager.close();
-  process.exit(0);
+startServer().catch((err) => {
+  console.error('Erreur démarrage:', err);
 });
-
-// Lancement automatique du serveur
-if (require.main === module) {
-  startServer().catch((error) => {
-    console.error('Impossible de démarrer le serveur:', error);
-    process.exitCode = 1;
-  });
-}
-
-module.exports = { app, DatabaseManager, ObjectId };
