@@ -1,3 +1,6 @@
+// Charger les variables d'environnement du fichier .env en local
+require('dotenv').config();
+
 const express = require('express');
 const { MongoClient, ObjectId } = require('mongodb');
 const path = require('path');
@@ -10,7 +13,7 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(express.static(path.join(__dirname, 'public')));
 
-// Configuration du moteur de vues si vous utilisez EJS
+// Configuration du moteur de vues
 app.set('view engine', 'ejs');
 app.set('views', path.join(__dirname, 'views'));
 
@@ -54,14 +57,13 @@ class DatabaseManager {
   }
 }
 
-// Initialisation de la base de données avec la variable d'environnement Render
+// Initialisation de la base de données
 const mongoUri = process.env.MONGODB_URI;
 const dbManager = new DatabaseManager(mongoUri);
 
 // Routes principales de l'application
 app.get('/', async (req, res) => {
   try {
-    // Exemple de récupération des données de vote
     res.render('index', { message: 'Bienvenue sur NODIFS VOTE' });
   } catch (err) {
     console.error('Erreur lors du chargement de la page d\'accueil:', err);
@@ -72,7 +74,6 @@ app.get('/', async (req, res) => {
 // Fonction de démarrage du serveur
 async function startServer() {
   try {
-    // Connexion à la base de données avant de lancer le serveur web
     await dbManager.connect();
 
     app.listen(PORT, '0.0.0.0', () => {
@@ -84,7 +85,7 @@ async function startServer() {
   }
 }
 
-// Lancement automatique du serveur si le fichier est exécuté directement
+// Lancement automatique du serveur
 if (require.main === module) {
   startServer().catch((error) => {
     console.error('Impossible de démarrer le serveur:', error);
