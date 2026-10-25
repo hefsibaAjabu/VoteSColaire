@@ -41,9 +41,11 @@ class MongoElectionStore {
     }
 
     this.client = new MongoClient(this.uri, {
-      serverSelectionTimeoutMS: 15000,
-      connectTimeoutMS: 15000,
-      family: 4 // Force IPv4 pour contourner les blocages réseau de Render
+      serverSelectionTimeoutMS: 30000,
+      connectTimeoutMS: 30000,
+      family: 4, // Force l'utilisation d'IPv4
+      tls: true, // Force l'activation explicite du chiffrement TLS
+      retryWrites: true
     });
     
     await this.client.connect();
