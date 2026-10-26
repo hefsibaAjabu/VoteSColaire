@@ -323,3 +323,24 @@ test('a student cannot vote more than once', async () => {
     await closeServer(server);
   }
 });
+
+test('only student ids from NV0001 through NV0180 can vote', async () => {
+  const { server, baseUrl } = await startTestServer();
+
+  try {
+    const vote = (studentId) => fetch(`${baseUrl}/api/vote`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ studentId, candidateId: 'c1' })
+    });
+
+    assert.equal((await vote('NV0001')).status, 201);
+    assert.equal((await vote('NV0180')).status, 201);
+
+    for (const studentId of ['NV0000', 'NV0181', 'NV0999', 'NV1000']) {
+      assert.equal((await vote(studentId)).status, 400, `${studentId} should be rejected`);
+    }
+  } finally {
+    await closeServer(server);
+  }
+});

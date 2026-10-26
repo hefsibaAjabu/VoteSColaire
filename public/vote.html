@@ -27,7 +27,7 @@
           <h2>Formulaire de vote</h2>
           <form id="vote-form">
             <label for="studentId">Identifiant</label>
-            <input id="studentId" name="studentId" type="text" placeholder="Identifiant" pattern="NV0[0-9]{3}|NV1[0-7][0-9]|NV180" title="Le numéro est incorrect" required />
+            <input id="studentId" name="studentId" type="text" placeholder="Identifiant" pattern="NV0(00[1-9]|0[1-9][0-9]|1[0-7][0-9]|180)" title="Entrez un identifiant de NV0001 à NV0180." required />
 
             <div id="candidate-list" class="candidate-list"></div>
 

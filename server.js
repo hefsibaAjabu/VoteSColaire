@@ -130,7 +130,7 @@ function parseCookies(header = '') {
 function isValidStudentId(studentId) {
   if (typeof studentId !== 'string') return false;
   const trimmed = studentId.trim();
-  const validPattern = /^NV(0\d{3}|1[0-7]\d|180)$/;
+  const validPattern = /^NV0(?:00[1-9]|0[1-9]\d|1[0-7]\d|180)$/;
   return validPattern.test(trimmed);
 }
 
