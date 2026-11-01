@@ -208,7 +208,7 @@ test('admin dashboard lists voter ids and selected candidates', async () => {
     await fetch(`${baseUrl}/api/vote`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ studentId: 'NV0001', candidateId: 'c2' })
+      body: JSON.stringify({ studentId: 'NOV0001', candidateId: 'c2' })
     });
 
     const { payload } = await login(baseUrl);
@@ -219,7 +219,7 @@ test('admin dashboard lists voter ids and selected candidates', async () => {
 
     assert.equal(votersResponse.status, 200);
     assert.ok(Array.isArray(voters.votes));
-    assert.ok(voters.votes.some((vote) => vote.studentId === 'NV0001' && vote.candidateId === 'c2'));
+    assert.ok(voters.votes.some((vote) => vote.studentId === 'NOV0001' && vote.candidateId === 'c2'));
   } finally {
     await closeServer(server);
   }
@@ -280,7 +280,7 @@ test('admin can edit candidates and cannot delete one that has votes', async () 
     await fetch(`${baseUrl}/api/vote`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ studentId: 'NV0005', candidateId: 'c1' })
+      body: JSON.stringify({ studentId: 'NOV0005', candidateId: 'c1' })
     });
     const protectedDeleteResponse = await fetch(`${baseUrl}/api/admin/candidates/c1`, {
       method: 'DELETE',
@@ -309,7 +309,7 @@ test('admin can reset all votes and restart the election', async () => {
     await fetch(`${baseUrl}/api/vote`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ studentId: 'NV0002', candidateId: 'c1' })
+      body: JSON.stringify({ studentId: 'NOV0002', candidateId: 'c1' })
     });
 
     const { payload } = await login(baseUrl);
@@ -339,7 +339,7 @@ test('votes and candidates remain available after the server restarts', async ()
   await fetch(`${first.baseUrl}/api/vote`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ studentId: 'NV0003', candidateId: 'c1' })
+    body: JSON.stringify({ studentId: 'NOV0003', candidateId: 'c1' })
   });
   const { payload } = await login(first.baseUrl);
   const formData = new FormData();
@@ -376,7 +376,7 @@ test('a student cannot vote more than once', async () => {
     const vote = () => fetch(`${baseUrl}/api/vote`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ studentId: 'NV0004', candidateId: 'c1' })
+      body: JSON.stringify({ studentId: 'NOV0004', candidateId: 'c1' })
     });
 
     assert.equal((await vote()).status, 201);
@@ -386,7 +386,7 @@ test('a student cannot vote more than once', async () => {
   }
 });
 
-test('only student ids from NV0001 through NV0180 can vote', async () => {
+test('only student ids from NOV0001 through NOV0050 can vote', async () => {
   const { server, baseUrl } = await startTestServer();
 
   try {
@@ -396,10 +396,10 @@ test('only student ids from NV0001 through NV0180 can vote', async () => {
       body: JSON.stringify({ studentId, candidateId: 'c1' })
     });
 
-    assert.equal((await vote('NV0001')).status, 201);
-    assert.equal((await vote('NV0180')).status, 201);
+    assert.equal((await vote('NOV0001')).status, 201);
+    assert.equal((await vote('NOV0050')).status, 201);
 
-    for (const studentId of ['NV0000', 'NV0181', 'NV0999', 'NV1000']) {
+    for (const studentId of ['NOV0000', 'NOV0051', 'NOV0100', 'NV0001', 'NOV050', 'NOV005']) {
       assert.equal((await vote(studentId)).status, 400, `${studentId} should be rejected`);
     }
   } finally {
