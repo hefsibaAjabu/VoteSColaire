@@ -1219,6 +1219,22 @@ button:hover {
   font-size: 0.8rem;
 }
 
+.candidate-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.candidate-actions button {
+  padding: 9px 13px;
+  border-radius: 10px;
+  font-size: 0.88rem;
+}
+
+.candidate-actions .danger-btn {
+  box-shadow: none;
+}
+
 .mini-progress-bar {
   height: 10px;
   border-radius: 999px;

@@ -41,6 +41,22 @@ class MemoryElectionStore {
     return candidate;
   }
 
+  async updateCandidate(id, input) {
+    const candidate = this.state.candidates.find((item) => item.id === id);
+    if (!candidate) return null;
+    candidate.name = input.name;
+    candidate.label = input.label;
+    if (input.image) candidate.image = input.image;
+    return { ...candidate };
+  }
+
+  async deleteCandidate(id) {
+    if (this.state.votes.some((vote) => vote.candidateId === id)) return 'has-votes';
+    const index = this.state.candidates.findIndex((candidate) => candidate.id === id);
+    if (index < 0) return null;
+    return this.state.candidates.splice(index, 1)[0];
+  }
+
   async saveImage(filename, contentType, data) {
     this.images.set(filename, { contentType, data: Buffer.from(data) });
   }
@@ -235,6 +251,52 @@ test('admin can add a candidate and persist its uploaded image', async () => {
     assert.ok(electionPayload.candidates.some((candidate) => candidate.name === 'MUTONI Grace'));
     assert.equal(imageResponse.status, 200);
     assert.equal(await imageResponse.text(), 'fake-image-data');
+  } finally {
+    await closeServer(server);
+  }
+});
+
+test('admin can edit candidates and cannot delete one that has votes', async () => {
+  const { server, baseUrl } = await startTestServer();
+
+  try {
+    const { payload } = await login(baseUrl);
+    const headers = { 'x-admin-token': payload.token };
+    const formData = new FormData();
+    formData.set('name', 'Nouveau nom');
+    formData.set('label', 'Candidat modifié');
+
+    const editResponse = await fetch(`${baseUrl}/api/admin/candidates/c2`, {
+      method: 'PUT',
+      headers,
+      body: formData
+    });
+    const editPayload = await editResponse.json();
+
+    assert.equal(editResponse.status, 200);
+    assert.equal(editPayload.candidate.name, 'Nouveau nom');
+    assert.equal(editPayload.candidate.image, '/images/ilone.jpeg');
+
+    await fetch(`${baseUrl}/api/vote`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ studentId: 'NV0005', candidateId: 'c1' })
+    });
+    const protectedDeleteResponse = await fetch(`${baseUrl}/api/admin/candidates/c1`, {
+      method: 'DELETE',
+      headers
+    });
+    assert.equal(protectedDeleteResponse.status, 409);
+
+    const deleteResponse = await fetch(`${baseUrl}/api/admin/candidates/c2`, {
+      method: 'DELETE',
+      headers
+    });
+    assert.equal(deleteResponse.status, 200);
+
+    const electionResponse = await fetch(`${baseUrl}/api/election`);
+    const electionPayload = await electionResponse.json();
+    assert.ok(!electionPayload.candidates.some((candidate) => candidate.id === 'c2'));
   } finally {
     await closeServer(server);
   }

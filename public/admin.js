@@ -17,6 +17,9 @@ const votersListExtended = document.getElementById('voters-list-extended');
 const candidateSummaryList = document.getElementById('candidate-summary-list');
 const addCandidateForm = document.getElementById('add-candidate-form');
 const candidateFormMessage = document.getElementById('candidate-form-message');
+const cancelCandidateEditButton = document.getElementById('cancel-candidate-edit');
+const candidateFormTitle = addCandidateForm.querySelector('h3');
+const candidateSubmitButton = addCandidateForm.querySelector('button[type="submit"]');
 const exportCsvButton = document.getElementById('export-csv-btn');
 const resetElectionButton = document.getElementById('reset-election-btn');
 const logoutButton = document.getElementById('admin-logout-btn');
@@ -26,6 +29,18 @@ const navButtons = document.querySelectorAll('.nav-item');
 const navPanels = document.querySelectorAll('.nav-panel');
 
 let resultsVisible = false;
+let editingCandidateId = null;
+let currentCandidates = [];
+
+function escapeHtml(value) {
+  return String(value).replace(/[&<>"']/g, (character) => ({
+    '&': '&amp;',
+    '<': '&lt;',
+    '>': '&gt;',
+    '"': '&quot;',
+    "'": '&#39;'
+  })[character]);
+}
 
 function showMessage(message, type = 'success') {
   adminMessage.textContent = message;
@@ -83,7 +98,7 @@ function renderOverviewCharts(results) {
         return `
           <div class="chart-row">
             <div class="chart-row-head">
-              <span>${candidate.name}</span>
+              <span>${escapeHtml(candidate.name)}</span>
               <strong>${candidate.votes}</strong>
             </div>
             <div class="chart-bar-track">
@@ -110,6 +125,7 @@ function renderOverviewCharts(results) {
 
 function renderResults(results) {
   const { sorted, leader, maxVotes } = getLeaderData(results);
+  currentCandidates = sorted;
   const totalVotes = sorted.reduce((sum, item) => sum + item.votes, 0) || 1;
 
   resultsList.innerHTML = sorted
@@ -121,10 +137,10 @@ function renderResults(results) {
         <div class="result-item ${isLeader ? 'leader-item' : ''}">
           <div class="result-meta">
             <div class="result-header">
-              <strong>${candidate.name}</strong>
+              <strong>${escapeHtml(candidate.name)}</strong>
               ${isLeader ? '<span class="leader-pill">Leader</span>' : ''}
             </div>
-            <span>${candidateNumber}</span>
+            <span>${escapeHtml(candidateNumber)}</span>
           </div>
           <div class="result-score-box">
             <span class="result-badge">${candidate.votes}</span>
@@ -147,11 +163,15 @@ function renderResults(results) {
         return `
           <div class="candidate-summary-item">
             <div class="candidate-summary-head">
-              <strong>${candidate.name}</strong>
+              <strong>${escapeHtml(candidate.name)}</strong>
               <span>${candidate.votes} voix</span>
             </div>
             <div class="mini-progress-bar"><span style="width:${percentage}%"></span></div>
             <small>${percentage}% des votes</small>
+            <div class="candidate-actions">
+              <button type="button" class="secondary-btn" data-action="edit" data-id="${escapeHtml(candidate.id)}">Modifier</button>
+              <button type="button" class="danger-btn" data-action="delete" data-id="${escapeHtml(candidate.id)}">Supprimer</button>
+            </div>
           </div>
         `;
       })
@@ -283,6 +303,31 @@ async function logoutAdmin() {
   showMessage('Déconnexion réussie.', 'success');
 }
 
+function showCandidateFormMessage(message, type) {
+  candidateFormMessage.textContent = message;
+  candidateFormMessage.className = `message ${type}`;
+}
+
+function resetCandidateForm() {
+  editingCandidateId = null;
+  addCandidateForm.reset();
+  candidateFormTitle.textContent = 'Ajouter un candidat';
+  candidateSubmitButton.textContent = 'Ajouter le candidat';
+  cancelCandidateEditButton.classList.add('hidden');
+}
+
+function editCandidate(candidate) {
+  editingCandidateId = candidate.id;
+  document.getElementById('candidate-name').value = candidate.name;
+  document.getElementById('candidate-label').value = candidate.label || '';
+  document.getElementById('candidate-image').value = '';
+  candidateFormTitle.textContent = 'Modifier un candidat';
+  candidateSubmitButton.textContent = 'Enregistrer les modifications';
+  cancelCandidateEditButton.classList.remove('hidden');
+  showCandidateFormMessage('', '');
+  addCandidateForm.scrollIntoView({ behavior: 'smooth', block: 'center' });
+}
+
 adminLoginBtn.addEventListener('click', loginAdmin);
 logoutButton.addEventListener('click', logoutAdmin);
 
@@ -337,30 +382,82 @@ if (addCandidateForm) {
       return;
     }
 
-    if (imageFile && imageFile.size === 0) {
+    if (imageFile && imageFile.name && imageFile.size === 0) {
       candidateFormMessage.textContent = 'Veuillez sélectionner une photo valide.';
       candidateFormMessage.className = 'message error';
       return;
     }
 
-    const response = await fetch('/api/admin/candidates', {
-      method: 'POST',
-      credentials: 'same-origin',
-      body: formData
-    });
+    const candidateId = editingCandidateId;
+    const url = candidateId
+      ? `/api/admin/candidates/${encodeURIComponent(candidateId)}`
+      : '/api/admin/candidates';
 
-    const data = await response.json();
+    try {
+      const response = await fetch(url, {
+        method: candidateId ? 'PUT' : 'POST',
+        credentials: 'same-origin',
+        body: formData
+      });
+      const data = await response.json();
 
-    if (!response.ok) {
-      candidateFormMessage.textContent = data.error || 'Impossible d’ajouter le candidat.';
-      candidateFormMessage.className = 'message error';
+      if (!response.ok) {
+        showCandidateFormMessage(data.error || 'Impossible d’enregistrer le candidat.', 'error');
+        return;
+      }
+
+      resetCandidateForm();
+      showCandidateFormMessage(data.message, 'success');
+      await loadAdminDetails();
+    } catch (error) {
+      showCandidateFormMessage('Erreur réseau : impossible d’enregistrer le candidat.', 'error');
+    }
+  });
+}
+
+if (cancelCandidateEditButton) {
+  cancelCandidateEditButton.addEventListener('click', () => {
+    resetCandidateForm();
+    showCandidateFormMessage('', '');
+  });
+}
+
+if (candidateSummaryList) {
+  candidateSummaryList.addEventListener('click', async (event) => {
+    const button = event.target.closest('button[data-action]');
+    if (!button) return;
+
+    const candidate = currentCandidates.find((item) => item.id === button.dataset.id);
+    if (!candidate) return;
+
+    if (button.dataset.action === 'edit') {
+      editCandidate(candidate);
       return;
     }
 
-    candidateFormMessage.textContent = data.message;
-    candidateFormMessage.className = 'message success';
-    addCandidateForm.reset();
-    await loadAdminDetails();
+    const confirmed = window.confirm(
+      candidate.votes > 0
+        ? `${candidate.name} a reçu des votes et ne pourra pas être supprimé.`
+        : `Voulez-vous vraiment supprimer ${candidate.name} ?`
+    );
+    if (!confirmed) return;
+
+    try {
+      const response = await fetch(`/api/admin/candidates/${encodeURIComponent(candidate.id)}`, {
+        method: 'DELETE',
+        credentials: 'same-origin'
+      });
+      const data = await response.json();
+      if (!response.ok) {
+        showCandidateFormMessage(data.error || 'Impossible de supprimer le candidat.', 'error');
+        return;
+      }
+      if (editingCandidateId === candidate.id) resetCandidateForm();
+      showCandidateFormMessage(data.message, 'success');
+      await loadAdminDetails();
+    } catch (error) {
+      showCandidateFormMessage('Erreur réseau : impossible de supprimer le candidat.', 'error');
+    }
   });
 }
 
