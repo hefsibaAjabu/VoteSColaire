@@ -161,7 +161,7 @@ function parseCookies(header = '') {
 function isValidStudentId(studentId) {
   if (typeof studentId !== 'string') return false;
   const trimmed = studentId.trim();
-  const validPattern = /^NOV0(?:00[1-9]|0[1-4]\d|050)$/;
+  const validPattern = /^NOV0(?:0[0-7]\d|080)$/;
   return validPattern.test(trimmed);
 }
 
@@ -383,7 +383,7 @@ function createApp(store, adminPassword) {
       const safeCandidateId = String(candidateId || '').trim();
 
       if (!safeStudentId || !isValidStudentId(safeStudentId)) {
-        return res.status(400).json({ error: 'Identifiant invalide (ex: NOV0001 à NOV0050).' });
+        return res.status(400).json({ error: 'Identifiant invalide (ex: NOV0000 à NOV0080).' });
       }
 
       if (!safeCandidateId) {

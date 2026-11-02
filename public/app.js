@@ -21,7 +21,7 @@ let adminToken = '';
 function isValidStudentId(studentId) {
   if (typeof studentId !== 'string') return false;
   const trimmed = studentId.trim();
-  const validPattern = /^NOV0(?:00[1-9]|0[1-4]\d|050)$/;
+  const validPattern = /^NOV0(?:0[0-7]\d|080)$/;
   return validPattern.test(trimmed);
 }
 
@@ -184,7 +184,7 @@ form.addEventListener('submit', async (event) => {
   formMessage.className = 'message';
 
   if (!isValidStudentId(studentId)) {
-    formMessage.textContent = 'Identifiant invalide. Entrez un numéro de NOV0001 à NOV0050.';
+    formMessage.textContent = 'Identifiant invalide. Entrez un numéro de NOV0000 à NOV0080.';
     formMessage.classList.add('error');
     return;
   }

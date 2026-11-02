@@ -386,7 +386,7 @@ test('a student cannot vote more than once', async () => {
   }
 });
 
-test('only student ids from NOV0001 through NOV0050 can vote', async () => {
+test('only student ids from NOV0000 through NOV0080 can vote', async () => {
   const { server, baseUrl } = await startTestServer();
 
   try {
@@ -396,10 +396,10 @@ test('only student ids from NOV0001 through NOV0050 can vote', async () => {
       body: JSON.stringify({ studentId, candidateId: 'c1' })
     });
 
-    assert.equal((await vote('NOV0001')).status, 201);
-    assert.equal((await vote('NOV0050')).status, 201);
+    assert.equal((await vote('NOV0000')).status, 201);
+    assert.equal((await vote('NOV0080')).status, 201);
 
-    for (const studentId of ['NOV0000', 'NOV0051', 'NOV0100', 'NV0001', 'NOV050', 'NOV005']) {
+    for (const studentId of ['NOV0081', 'NOV0100', 'NV0001', 'NOV050', 'NOV005']) {
       assert.equal((await vote(studentId)).status, 400, `${studentId} should be rejected`);
     }
   } finally {
